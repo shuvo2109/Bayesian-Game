@@ -16,6 +16,18 @@ class Environment:
 
         self.mode = mode
 
+        self.red_dens = red_dens
+        self.green_dens = green_dens
+        self.obs_dens = obs_dens
+
+        self.obstacles = []
+        self.red_cells = []
+        self.grn_cells = []
+
+        self.p1_position = (0, 0)
+        self.p2_position = (0, 0)
+
+    def assign_obstacles(self):
         if self.mode.lower() == "debug":
             self.obstacles = [(3, 0), (3, 1), (0, 2), (1, 2), (4, 3), (5, 3), (2, 4), (2, 5)]
             self.red_cells = [(0, 0), (4, 1), (1, 5)]
@@ -24,28 +36,33 @@ class Environment:
             available_positions = list(self.states)
 
             # Obstacles
-            num_obs = int(self.width * self.height * obs_dens)
+            num_obs = int(self.width * self.height * self.obs_dens)
             self.obstacles = random.sample(available_positions, num_obs)
 
             # Red Cells
             available_positions = [pos for pos in available_positions if pos not in self.obstacles]
-            num_red = int(self.width * self.height * red_dens)
+            num_red = int(self.width * self.height * self.red_dens)
             self.red_cells = random.sample(available_positions, num_red)
 
             # Green Cells
             available_positions = [pos for pos in available_positions if pos not in self.red_cells]
-            num_green = int(self.width * self.height * green_dens)
+            num_green = int(self.width * self.height * self.green_dens)
             self.grn_cells = random.sample(available_positions, num_green)
 
-        occupied_positions = set(self.obstacles + self.red_cells + self.grn_cells)
-        available_positions = [pos for pos in self.states if pos not in occupied_positions]
+    def assign_players(self):
+        if self.mode == "debug":
+            self.p1_position = (2, 2)
+            self.p2_position = (3, 3)
+        else:
+            occupied_positions = set(self.obstacles + self.red_cells + self.grn_cells)
+            available_positions = [pos for pos in self.states if pos not in occupied_positions]
 
-        # Player 1 position
-        self.p1_position = random.choice(available_positions)
+            # Player 1 position
+            self.p1_position = random.choice(available_positions)
 
-        # Player 2 position
-        available_positions.remove(self.p1_position)
-        self.p2_position = random.choice(available_positions)
+            # Player 2 position
+            available_positions.remove(self.p1_position)
+            self.p2_position = random.choice(available_positions)
 
     def is_valid(self, pos):
         return (0 <= pos[0] < self.width and
@@ -118,8 +135,8 @@ class Player2:
         self.alpha = alpha
         self.gamma = gamma
 
-    def assign_type(self):
-        self.theta2 = random.choice([0, 1])
+    def assign_type(self, prob_cooperative=0.5):
+        self.theta2 = 0 if random.random() < prob_cooperative else 1
 
     def choose_action(self, state):
         if random.uniform(0, 1) < self.epsilon:
@@ -153,8 +170,13 @@ class Game:
             self.p2.assign_type()
             self.history = {'s': [], 'a1': [], 'a2': []}
 
-            pos1 = self.p1.position
-            pos2 = self.p2.position
+            self.env.assign_players()
+
+            self.p1.position = self.env.p1_position
+            self.p2.position = self.env.p2_position
+
+            pos1 = self.env.p1_position
+            pos2 = self.env.p2_position
 
             self.history['s'].append((pos1, pos2))
 
