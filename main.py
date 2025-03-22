@@ -1,3 +1,4 @@
+import json
 import random
 
 
@@ -163,8 +164,10 @@ class Game:
         self.B = B  # Competition reward / punishment
         self.C = C  # False Negative Punishment
 
+        self.trajectory = {}
+
     def run(self, num_episodes=1000, T=10):
-        for _ in range(num_episodes):
+        for episode in range(num_episodes):
             # Episode initialization
             self.p1.update_belief(self.history)
             self.p2.assign_type()
@@ -179,6 +182,12 @@ class Game:
             pos2 = self.env.p2_position
 
             self.history['s'].append((pos1, pos2))
+
+            # Record Trajectory
+            episode_data = {
+                "belief": self.p1.belief.copy(),
+                "turns": []
+            }
 
             for t in range(T):
                 # Turn initialization
@@ -202,8 +211,23 @@ class Game:
                     if p2t_new in get_neighbors(pos=p1t_new):
                         if self.p2.theta2 == 0:
                             r1, r2 = -self.C, -self.C
+
                         self.p1.Q_update(self.history, a1t, a2t, r1)
                         self.p2.Q_update(st, a2t, r2, (p1t_new, p2t_new))
+
+                        # Record this turn
+                        episode_data["turns"].append({
+                            "p1t": p1t, "p2t": p2t,
+                            "a1t": a1t, "a2t": a2t,
+                            "r1": r1, "r2": r2,
+                            "Q1": self.p1.Q[(a1t, a2t)],
+                            "Q2": self.p2.Q[st][a2t],
+                            "VI1": self.p1.VI.copy()
+                        })
+
+
+                        self.trajectory[episode] = episode_data
+
                         break
 
                 # Cooperative agent reaching green cell sharing mutual rewards
@@ -222,4 +246,21 @@ class Game:
                 self.history['s'].append((p1t_new, p2t_new))
                 self.history['a1'].append(a1t)
                 self.history['a2'].append(a2t)
+
+                # Record this turn
+                episode_data["turns"].append({
+                    "p1t": p1t, "p2t": p2t,
+                    "a1t": a1t, "a2t": a2t,
+                    "r1": r1, "r2": r2,
+                    "Q1": self.p1.Q[(a1t, a2t)],
+                    "Q2": self.p2.Q[st][a2t],
+                    "VI1": self.p1.VI.copy()
+                })
+
+            self.trajectory[episode] = episode_data
+
+    def export_trajectory(self, filename="trajectory.json"):
+        with open(filename, "w") as f:
+            json.dump(self.trajectory, f, indent=2)
+
 
