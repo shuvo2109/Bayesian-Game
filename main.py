@@ -75,6 +75,17 @@ class Environment:
         new_pos = (pos[0] + moves[action][0], pos[1] + moves[action][1])
         return new_pos if self.is_valid(new_pos) else pos
 
+    def save_to_json(self, filename="environment.json"):
+        env_data = {
+            "obstacles": self.obstacles,
+            "red_cells": self.red_cells,
+            "green_cells": self.grn_cells
+        }
+        with open(filename, "w") as file:
+            json.dump(env_data, file, indent=4)
+
+        print(f"Environment data saved to {filename}.")
+
 
 class Player1:
     def __init__(self, env: Environment, alpha=0.1, gamma=0.9):

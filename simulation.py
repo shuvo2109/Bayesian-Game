@@ -21,7 +21,9 @@ game = Game(
     C=0.5
 )
 
+env.assign_obstacles()
+env.assign_players()
+env.save_to_json()
+
 game.run(num_episodes=1000, T=10)
 game.export_trajectory(filename="test_debug_simulation.json")
-
-
